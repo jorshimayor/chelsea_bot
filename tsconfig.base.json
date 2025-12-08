@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "declaration": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@db/*": ["packages/db/*"],
+      "@shared/*": ["packages/shared/*"],
+      "@tools/*": ["packages/tools/*"],
+      "@observability/*": ["packages/observability/*"]
+    }
+  }
+}

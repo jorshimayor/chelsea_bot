@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/index.ts": {
+      "runtime": "edge"
+    }
+  },
+  "middleware": "middleware.ts",
+  "crons": [
+    {
+      "path": "/api/cron/prewarm",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
