@@ -10,7 +10,8 @@
     "check:coldstart": "node scripts/checkColdstart.mjs",
     "check:tokens": "node scripts/checkTokens.mjs",
     "check:dbqueries": "node scripts/checkDbQueries.mjs",
-    "deploy": "echo deploy"
+    "deploy": "echo deploy",
+    "db:push": "drizzle-kit push"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

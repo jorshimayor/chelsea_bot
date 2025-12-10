@@ -1,5 +1,4 @@
 export const config = { runtime: "edge" };
+import handler from "../apps/agent/src/index";
+export default handler;
 
-export default async function handler(req: Request): Promise<Response> {
-  return new Response("agent", { status: 200 });
-}
