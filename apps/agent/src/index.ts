@@ -19,7 +19,7 @@ function streamText(text: string): ReadableStream<Uint8Array> {
         setTimeout(push, 25);
       };
       push();
-    }
+    },
   });
 }
 
@@ -27,12 +27,25 @@ Sentry.init({ dsn: env.SENTRY_DSN || "" });
 
 export default async function handler(req: Request): Promise<Response> {
   try {
-    const citations = (req.headers.get("x-citations") || "").split(" ").filter(Boolean);
+    const citations = (req.headers.get("x-citations") || "")
+      .split(" ")
+      .filter(Boolean);
     const t = startTrace("openrouter-stream", { citations });
-    const { stream, usage } = await routeAndStream({ messages: [{ role: "system", content: "You are BlueBanter" }, { role: "user", content: citations.join(" ") }] });
+    const { stream, usage } = await routeAndStream({
+      messages: [
+        { role: "system", content: "You are BlueBanter" },
+        { role: "user", content: citations.join(" ") },
+      ],
+    });
     const usageValue = await usage;
     await endTrace(t);
-    return new Response(stream, { status: 200, headers: { "Content-Type": "text/plain", "x-token-usage": String(usageValue) } });
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain",
+        "x-token-usage": String(usageValue),
+      },
+    });
   } catch (e) {
     Sentry.captureException(e);
     return new Response("error", { status: 500 });

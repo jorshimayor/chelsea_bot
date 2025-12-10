@@ -1,11 +1,17 @@
 import { AgentState, NodeHandler } from "@shared/types";
 import { routeAndChat, routeAndStream } from "@shared/openrouter";
-import { getLiveEvents, getPlayerStats, fetchNews, fetchQuotes, fetchExpertCommentary, generateImage } from "@tools/index";
+import {
+  getLiveEvents,
+  getPlayerStats,
+  fetchNews,
+  fetchQuotes,
+  fetchExpertCommentary,
+  generateImage,
+} from "@tools/index";
 import { filterContent, protectChelseaFan } from "@shared/safety";
 import { db } from "@db/client";
-import { conversations, messages, users } from "@db/schema";
-import flags from "../../config/flags.json";
-import { context, trace } from "@opentelemetry/api";
+import { messages, users } from "@db/schema";
+import flags from "@/../config/flags.json";
 import { startTrace, endTrace } from "@observability/index";
 import { once } from "@shared/redis";
 import { publishTweetForUser } from "@shared/x";
@@ -52,7 +58,15 @@ const userLookupNode: NodeHandler = async (state) => {
 };
 const toneClassifierNode: NodeHandler = async (state) => {
   const t = startTrace("toneClassifier");
-  const res = await routeAndChat({ messages: [{ role: "system", content: "classify tone professional or savage" }, { role: "user", content: state.messages[state.messages.length - 1]?.content || "" }] });
+  const res = await routeAndChat({
+    messages: [
+      { role: "system", content: "classify tone professional or savage" },
+      {
+        role: "user",
+        content: state.messages[state.messages.length - 1]?.content || "",
+      },
+    ],
+  });
   const tone = res.content.includes("savage") ? "savage" : "professional";
   await endTrace(t);
   return { ...state, tone };
@@ -63,16 +77,27 @@ const parallelToolNode: NodeHandler = async (state) => {
     getPlayerStats({ name: state.user.favoritePlayer || "Chelsea" }),
     fetchNews({}),
     fetchQuotes({ player: state.user.favoritePlayer || "Chelsea" }),
-    fetchExpertCommentary({ player: state.user.favoritePlayer || "Chelsea" })
+    fetchExpertCommentary({ player: state.user.favoritePlayer || "Chelsea" }),
   ]);
-  const toolsNeeded = [live.citation, stats.citation, news.citation, quotes.citation, expert.citation].filter(Boolean) as string[];
+  const toolsNeeded = [
+    live.citation,
+    stats.citation,
+    news.citation,
+    quotes.citation,
+    expert.citation,
+  ].filter(Boolean) as string[];
   return { ...state, toolsNeeded };
 };
 const synthesisNode: NodeHandler = async (state) => {
   const t = startTrace("synthesis");
   const tpl = await getTemplateForTone(state.tone);
   const citations = state.toolsNeeded.map((c) => `[${c}]`).join(" ");
-  const { stream } = await routeAndStream({ messages: [{ role: "system", content: tpl }, { role: "user", content: citations }] });
+  const { stream } = await routeAndStream({
+    messages: [
+      { role: "system", content: tpl },
+      { role: "user", content: citations },
+    ],
+  });
   const dec = new TextDecoder();
   let acc = "";
   const reader = stream.getReader();
@@ -94,7 +119,10 @@ const safetyFilterNode: NodeHandler = async (state) => {
 };
 const imageGenerationNode: NodeHandler = async (state) => {
   if (!flags.image_generation_enabled) return state;
-  const img = await generateImage({ prompt: state.finalReply || "", style: "chelsea" });
+  const img = await generateImage({
+    prompt: state.finalReply || "",
+    style: "chelsea",
+  });
   return { ...state, imageUrl: img.url };
 };
 const publishToXNode: NodeHandler = async (state) => {
@@ -106,7 +134,13 @@ const publishToXNode: NodeHandler = async (state) => {
   return state;
 };
 const persistNode: NodeHandler = async (state) => {
-  await db.insert(messages).values({ direction: "out", content: state.finalReply || "", imageUrl: state.imageUrl || null });
+  await db
+    .insert(messages)
+    .values({
+      direction: "out",
+      content: state.finalReply || "",
+      imageUrl: state.imageUrl || null,
+    });
   return state;
 };
 
@@ -131,4 +165,7 @@ const workflow = new StateGraph()
   .addEdge("publish", "persist")
   .addEdge("persist", "__end__");
 
-export const agent = workflow.compile({ checkpointer: {}, interruptBefore: ["safety"] });
+export const agent = workflow.compile({
+  checkpointer: {},
+  interruptBefore: ["safety"],
+});

@@ -2,7 +2,7 @@ Run Guide — BlueBanter TS
 
 Prerequisites
 - Node 20+, pnpm 9.11, Vercel CLI
-- Providers configured in `.env` (OpenRouter, Neon, Redis, API‑Football, Tavily, Nano Banana, X OAuth, Sentry)
+- Providers configured in `.env` (OpenRouter, Neon, Redis, API‑Football, Tavily, X OAuth, Sentry)
 
 1) Install
 - `pnpm install`
@@ -19,12 +19,12 @@ Prerequisites
 - Endpoints:
   - `/api/index` — Streams OpenRouter reply with `x-token-usage`
   - `/api/x/auth` — Initiates X OAuth PKCE; persists tokens to Postgres
-  - `/api/cron/prewarm` — Edge prewarm
-  - Middleware adds `x-cold-start-ms` header
+  - `/api/cron/prewarm` — Edge prewarm, returns `x-prewarm-ms` header
 
 5) Verify Functionality
 - Agent graph nodes and flow: see `apps/agent/src/graph.ts`
 - Tool providers cache and citations: `packages/tools/index.ts`
+- Image generation via OpenRouter: call `generateImage` in tools
 - Streaming handler and Sentry: `apps/agent/src/index.ts`
 
 6) CI Budget Checks (GitHub Actions)

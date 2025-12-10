@@ -1,6 +1,10 @@
 import crypto from "crypto";
 
-export function hmacVerify(payload: string, signature: string, secret: string): boolean {
+export function hmacVerify(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
   const h = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(signature));
 }
@@ -13,15 +17,18 @@ export function cors(req: Request): Response | null {
       headers: {
         "Access-Control-Allow-Origin": origin,
         "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Signature",
-        "Access-Control-Max-Age": "86400"
-      }
+        "Access-Control-Allow-Headers":
+          "Content-Type,Authorization,X-Signature",
+        "Access-Control-Max-Age": "86400",
+      },
     });
   }
   return null;
 }
 
-export function redactSecrets(obj: Record<string, unknown>): Record<string, unknown> {
+export function redactSecrets(
+  obj: Record<string, unknown>
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(obj)) {
     const v = obj[k];

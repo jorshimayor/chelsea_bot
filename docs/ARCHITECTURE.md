@@ -30,7 +30,7 @@ LLM Routing & Streaming
 - Edge handler streams with `x-token-usage`: `apps/agent/src/index.ts`
 
 Tools & Caching
-- Providers: API‑Football, Tavily, RSS, Nano Banana
+- Providers: API‑Football, Tavily, RSS, OpenRouter Images
 - Hot cache: Upstash Redis; Warm cache: Neon Postgres
 - Tool implementations with `citation`: `packages/tools/index.ts`
 
