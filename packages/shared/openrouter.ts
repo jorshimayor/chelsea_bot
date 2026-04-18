@@ -3,7 +3,7 @@ import { env } from "./env";
 
 type Model = { id: string; maxOutputTokens: number; priceRank: number };
 
-const models: Model[] = [
+export const models: Model[] = [
   { id: "x-ai/grok-4.1-fast", maxOutputTokens: 1200, priceRank: 1 },
   { id: "anthropic/claude-3-5-sonnet-20241022", maxOutputTokens: 1200, priceRank: 2 },
   { id: "meta/llama-3.1-405b", maxOutputTokens: 1200, priceRank: 3 },
