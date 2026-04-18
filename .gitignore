@@ -1,5 +1,17 @@
 node_modules
 dist
-.env
-.vercel
 coverage
+
+# --- secrets ---
+# Never commit any .env variant. .env.example IS tracked (see below).
+.env
+.env.*
+!.env.example
+
+# --- vercel local state ---
+.vercel
+.vercel-env.json
+
+# --- editor / os ---
+.DS_Store
+*.log

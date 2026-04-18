@@ -10,7 +10,7 @@ Clone & Install
 - `pnpm install`
 
 Environment Variables
-- Copy `env.example` → `.env` and fill:
+- Copy `.env.example` → `.env` and fill (see `docs/RUNNING_LOCALLY.md` for the minimal key set):
 - `OPENROUTER_API_KEY`, `NEON_DATABASE_URL`, `API_FOOTBALL_KEY`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `TAVILY_API_KEY`, `NANO_BANANA_API_KEY`, `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI`, `SENTRY_DSN`, `OTLP_ENDPOINT`
 - Optional: `vercel link && vercel env pull` to sync hosted env
 

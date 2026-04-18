@@ -13,11 +13,18 @@ const models: Model[] = [
 export type ChatInput = { messages: { role: string; content: string }[] };
 export type ChatOutput = { id: string; model: string; content: string };
 
-const client = new OpenAI({ baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY });
+// Lazy client: only constructed on first use so modules that import this file
+// (e.g. via observability) don't force an env check at module load.
+let _client: OpenAI | null = null;
+function getClient(): OpenAI {
+  if (_client) return _client;
+  _client = new OpenAI({ baseURL: "https://openrouter.ai/api/v1", apiKey: env.OPENROUTER_API_KEY });
+  return _client;
+}
 
 export async function routeAndChat(input: ChatInput): Promise<ChatOutput> {
   const model = models[0];
-  const res = await client.chat.completions.create({ model: model.id, messages: input.messages as OpenAI.ChatCompletionMessageParam[], max_tokens: model.maxOutputTokens });
+  const res = await getClient().chat.completions.create({ model: model.id, messages: input.messages as OpenAI.ChatCompletionMessageParam[], max_tokens: model.maxOutputTokens });
   const content = res.choices?.[0]?.message?.content || "";
   return { id: res.id || "", model: model.id, content };
 }
@@ -25,7 +32,7 @@ export async function routeAndChat(input: ChatInput): Promise<ChatOutput> {
 export async function routeAndStream(input: ChatInput): Promise<{ stream: ReadableStream<Uint8Array>; usage: Promise<number> }> {
   const model = models[0];
   const enc = new TextEncoder();
-  const res = await client.chat.completions.create({ model: model.id, messages: input.messages as OpenAI.ChatCompletionMessageParam[], max_tokens: model.maxOutputTokens, stream: true });
+  const res = await getClient().chat.completions.create({ model: model.id, messages: input.messages as OpenAI.ChatCompletionMessageParam[], max_tokens: model.maxOutputTokens, stream: true });
   const it = res as any;
   let totalTokens = 0;
   const usagePromise = (async () => totalTokens)();
@@ -45,7 +52,7 @@ export async function routeAndStream(input: ChatInput): Promise<{ stream: Readab
 export async function generateImage(input: { prompt: string; size?: string; modelId?: string }): Promise<{ url: string; model: string }> {
   const model = input.modelId || "black-forest-labs/flux-pro";
   const size = input.size || "1024x1024";
-  const res = await (client as any).images.generate({ model, prompt: input.prompt, size });
+  const res = await (getClient() as any).images.generate({ model, prompt: input.prompt, size });
   const first = res?.data?.[0] || {};
   const url = first.url || (first.b64_json ? `data:image/png;base64,${first.b64_json}` : "");
   return { url, model };

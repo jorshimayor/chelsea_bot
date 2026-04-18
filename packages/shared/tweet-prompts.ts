@@ -1,0 +1,149 @@
+/**
+ * Chelsea FC tweet prompt library.
+ *
+ * Every prompt MUST:
+ *  - stay under 280 characters (Twitter hard limit)
+ *  - end with #CFC and the 💙 emoji
+ *  - stay factual (never invent stats) — the LLM is given raw data in the user message
+ *  - match the tone: "professional" (calm, analytical) or "savage" (confident, SecretScout-style banter)
+ *
+ * The `system` string is the system prompt. The `user` template is a simple
+ * f-string-like body where `${...}` tokens get replaced from the `data` object
+ * before the call.
+ */
+
+export type TweetKind =
+  | "match_preview"
+  | "live_update"
+  | "post_match"
+  | "player_stat"
+  | "transfer_news"
+  | "weekly_deep_dive";
+
+export type Tone = "professional" | "savage";
+
+type PromptSpec = {
+  system: (tone: Tone) => string;
+  user: (data: Record<string, unknown>) => string;
+};
+
+const BASE_VOICE = (tone: Tone) => `
+You are the Chelsea FC tweet writer for the BlueBanter bot.
+Voice: ${tone === "savage"
+    ? "confident, witty, SecretScout-style banter. Never cruel. Never hateful. Never about race, gender, or protected traits. Keep it football."
+    : "calm, analytical, fan-friendly, enthusiastic but measured."}
+Hard rules:
+- Output ONE tweet only. Plain text. No quotes around it.
+- MAX 270 characters (leave room for safety).
+- Always end with "#CFC 💙".
+- Never invent stats. Only use numbers explicitly provided in the user message.
+- If the user message contains no usable facts, output exactly: SKIP
+- Never mention other clubs in a derogatory, discriminatory way. Banter about football only.
+- No hashtag spam. One or two hashtags max, with #CFC always last.
+`.trim();
+
+export const tweetPrompts: Record<TweetKind, PromptSpec> = {
+  match_preview: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a MATCH PREVIEW tweet.
+Structure: opponent + competition + date + a hook (kick-off, venue, or a key storyline).`,
+    user: (d) => `Opponent: ${d.opponent}
+Competition: ${d.competition}
+Date (local): ${d.date}
+Venue: ${d.venue ?? "TBD"}
+Hook: ${d.hook ?? "none"}`,
+  },
+
+  live_update: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a LIVE MATCH UPDATE tweet.
+Structure: minute + event (goal / card / sub) + scoreline + one supporting stat (possession or xG).`,
+    user: (d) => `Minute: ${d.minute}
+Event: ${d.event}
+Scorer/actor: ${d.actor ?? "n/a"}
+Score: ${d.score}
+Possession: ${d.possession ?? "n/a"}%
+xG: ${d.xg ?? "n/a"}`,
+  },
+
+  post_match: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a POST-MATCH tweet.
+Structure: final scoreline + possession + xG + shots + MOTM (if provided).`,
+    user: (d) => `Final: ${d.score}
+Possession: ${d.possession}%
+xG: ${d.xg}
+Shots (on target / total): ${d.shotsOnTarget}/${d.shotsTotal}
+MOTM: ${d.motm ?? "n/a"} (${d.motmRating ?? "n/a"})`,
+  },
+
+  player_stat: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a PLAYER STAT highlight tweet.
+Structure: player name + standout number(s) + short context.`,
+    user: (d) => `Player: ${d.player}
+Season: ${d.season}
+Goals: ${d.goals ?? "n/a"}
+Assists: ${d.assists ?? "n/a"}
+Appearances: ${d.apps ?? "n/a"}
+Extra stat (tackles, xG, pass%, key passes...): ${d.extra ?? "n/a"}`,
+  },
+
+  transfer_news: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a TRANSFER NEWS tweet.
+Structure: player + direction (in/out/linked) + fee (if known) + source.
+If reliability is 'rumor', use softening language like "reports" or "linked with".`,
+    user: (d) => `Player: ${d.player}
+Direction: ${d.direction}
+Fee: ${d.fee ?? "undisclosed"}
+From/To: ${d.counterparty ?? "n/a"}
+Reliability: ${d.reliability ?? "rumor"}
+Source: ${d.source ?? "n/a"}`,
+  },
+
+  weekly_deep_dive: {
+    system: (tone) => `${BASE_VOICE(tone)}
+Task: Write a WEEKLY DEEP-DIVE tweet.
+Structure: a thematic insight (form, a player arc, a tactical trend) backed by one or two numbers.`,
+    user: (d) => `Theme: ${d.theme}
+Key numbers: ${d.numbers}
+Window: ${d.window ?? "last 5 matches"}`,
+  },
+};
+
+/** Hard safety: always enforce the suffix + length. */
+const SUFFIX = "#CFC 💙";
+
+export function normalizeTweet(raw: string): string {
+  let t = (raw || "").trim();
+  if (t === "SKIP") return "";
+  // Strip accidental wrapping quotes
+  t = t.replace(/^["“'`]+|["”'`]+$/g, "");
+  // Collapse whitespace
+  t = t.replace(/\s+/g, " ").trim();
+  // Append #CFC 💙 if missing
+  if (!/#CFC/i.test(t)) t = `${t} ${SUFFIX}`.trim();
+  if (!t.includes("💙")) t = `${t} 💙`.trim();
+  // Enforce 280-char budget by trimming from the end *before* the suffix
+  if (t.length > 280) {
+    const suffixRe = /\s*#CFC\s*💙\s*$/i;
+    const body = t.replace(suffixRe, "").trim();
+    const maxBody = 280 - (SUFFIX.length + 1); // 1 for space
+    const trimmed = body.slice(0, maxBody - 1).replace(/\s+\S*$/, "") + "…";
+    t = `${trimmed} ${SUFFIX}`;
+  }
+  return t;
+}
+
+export function buildTweetMessages(
+  kind: TweetKind,
+  tone: Tone,
+  data: Record<string, unknown>
+): { role: "system" | "user"; content: string }[] {
+  const spec = tweetPrompts[kind];
+  return [
+    { role: "system", content: spec.system(tone) },
+    { role: "user", content: spec.user(data) },
+  ];
+}

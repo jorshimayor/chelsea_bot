@@ -6,6 +6,18 @@ import { newsCache, statCache } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateImage as orGenerateImage } from "../shared/openrouter";
 
+export {
+  CHELSEA_TEAM_ID,
+  getChelseaFixtures,
+  getMatchStats,
+  getChelseaPlayerSummary,
+} from "./football";
+export type {
+  NormalizedFixture,
+  NormalizedMatchStats,
+  NormalizedPlayerSummary,
+} from "./football";
+
 export async function getLiveEvents(input: { matchId?: string }) {
   const key = `live:${input.matchId || "latest"}`;
   const cached = await getCache<any>(key);

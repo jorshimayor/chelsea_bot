@@ -1,3 +1,15 @@
+/**
+ * Lazy env loader.
+ *
+ * Required keys (OPENROUTER_API_KEY, NEON_DATABASE_URL) are validated the first
+ * time they are *read*, not at module load. This lets routes that don't touch
+ * a given subsystem boot without the whole env being populated — e.g.
+ * /api/generate-tweet only needs OPENROUTER_API_KEY and will no longer crash
+ * because NEON_DATABASE_URL is missing.
+ *
+ * Usage is unchanged:  import { env } from "@shared/env"; env.OPENROUTER_API_KEY
+ */
+
 export type Env = {
   OPENROUTER_API_KEY: string;
   NEON_DATABASE_URL: string;
@@ -7,29 +19,35 @@ export type Env = {
   SENTRY_DSN?: string;
   TAVILY_API_KEY?: string;
   NANO_BANANA_API_KEY?: string;
+  GEMINI_API_KEY?: string;
   X_CLIENT_ID?: string;
   X_CLIENT_SECRET?: string;
   X_REDIRECT_URI?: string;
   OTLP_ENDPOINT?: string;
 };
 
-function requireEnv(key: keyof Env): string {
-  const v = process.env[key as string];
-  if (!v) throw new Error(`Missing env: ${key}`);
-  return v;
+const REQUIRED: (keyof Env)[] = ["OPENROUTER_API_KEY", "NEON_DATABASE_URL"];
+
+function read(key: keyof Env): string | undefined {
+  const procEnv = (globalThis as any).process?.env;
+  return procEnv ? procEnv[key as string] : undefined;
 }
 
-export const env: Env = {
-  OPENROUTER_API_KEY: requireEnv("OPENROUTER_API_KEY"),
-  NEON_DATABASE_URL: requireEnv("NEON_DATABASE_URL"),
-  API_FOOTBALL_KEY: process.env.API_FOOTBALL_KEY,
-  UPSTASH_REDIS_URL: process.env.UPSTASH_REDIS_URL,
-  UPSTASH_REDIS_TOKEN: process.env.UPSTASH_REDIS_TOKEN,
-  SENTRY_DSN: process.env.SENTRY_DSN,
-  TAVILY_API_KEY: process.env.TAVILY_API_KEY,
-  NANO_BANANA_API_KEY: process.env.NANO_BANANA_API_KEY,
-  X_CLIENT_ID: process.env.X_CLIENT_ID,
-  X_CLIENT_SECRET: process.env.X_CLIENT_SECRET,
-  X_REDIRECT_URI: process.env.X_REDIRECT_URI,
-  OTLP_ENDPOINT: process.env.OTLP_ENDPOINT
-};
+export const env = new Proxy({} as Env, {
+  get(_target, prop: string | symbol) {
+    if (typeof prop !== "string") return undefined;
+    const key = prop as keyof Env;
+    const raw = read(key);
+    if (raw === undefined || raw === "") {
+      if (REQUIRED.includes(key)) {
+        throw new Error(
+          `Missing env: ${String(
+            key
+          )}. Add it to .env (local) or Vercel project settings (prod).`
+        );
+      }
+      return undefined;
+    }
+    return raw;
+  },
+}) as Env;
