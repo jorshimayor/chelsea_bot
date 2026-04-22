@@ -1,46 +1,45 @@
 Run Guide — BlueBanter TS
 
 Prerequisites
-- Node 20+, pnpm 9.11, Vercel CLI
-- Providers configured in `.env` (OpenRouter, Neon, Redis, API‑Football, Tavily, X OAuth, Sentry)
+- Node 20+, pnpm 9.11
+- Cloudflare account (for deploy) + Wrangler (installed via `pnpm install`)
+- Providers configured in `.env` / `.dev.vars` (OpenRouter, Neon, Redis, API‑Football, Tavily, X OAuth, optional OTLP)
 
 1) Install
 - `pnpm install`
 
 2) Configure Environment
-- Copy `env.example` → `.env` and fill all keys
-- Optional: `vercel link && vercel env pull` to sync hosted env
+- Copy `.env.example` → `.env` and fill the keys you need (used by `pnpm db:push`)
+- Create `.dev.vars` for Wrangler dev (same keys, used at runtime)
 
 3) Apply Database Schema
 - `pnpm db:push` (applies `packages/db/schema.ts` to Neon)
 
-4) Run Locally (Edge Dev)
-- Run `vercel dev` directly (do not wrap it via `pnpm dev`)
+4) Run Locally (Workers Dev)
+- Run `pnpm dev` (bundles the Worker and starts `wrangler dev` on `http://localhost:3000`)
 - Endpoints:
   - `/api/index` — Streams OpenRouter reply with `x-token-usage`
   - `/api/x/auth` — Initiates X OAuth PKCE; persists tokens to Postgres
-  - `/api/cron/prewarm` — Edge prewarm, returns `x-prewarm-ms` header
+  - `/api/cron/prewarm` — Prewarm route, returns `x-prewarm-ms` header
 
 5) Verify Functionality
 - Agent graph nodes and flow: see `apps/agent/src/graph.ts`
 - Tool providers cache and citations: `packages/tools/index.ts`
 - Image generation via OpenRouter: call `generateImage` in tools
-- Streaming handler and Sentry: `apps/agent/src/index.ts`
+- Streaming handler: `apps/agent/src/index.ts`
 
 6) CI Budget Checks (GitHub Actions)
 - On each push/PR: bundle size, cold‑start, token cap, DB query budget
 - Run locally: `pnpm check:bundle`, `pnpm check:coldstart`, `pnpm check:tokens`, `pnpm check:dbqueries`
 
 7) Deploy to Production
-- `vercel deploy --prod`
+- `pnpm deploy` (builds and runs `wrangler deploy`)
 - Confirm headers: `x-cold-start-ms`, `x-token-usage`
 
 Troubleshooting
 - Missing env causes startup errors via `requireEnv` in `packages/shared/env.ts`
 - If Redis unavailable, falls back to in‑memory cache for tools
 - If providers rate‑limit, warm cache results served from Postgres until TTL expiry
-- Recursive invocation error:
-- If you see "`vercel dev` must not recursively invoke itself", clear the Project Settings → Development Command in Vercel dashboard (remove `pnpm dev`) and run `vercel dev` directly from your terminal.
 
 Useful Paths
 - Agent graph: `apps/agent/src/graph.ts`

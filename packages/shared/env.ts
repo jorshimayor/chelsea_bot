@@ -43,7 +43,7 @@ export const env = new Proxy({} as Env, {
         throw new Error(
           `Missing env: ${String(
             key
-          )}. Add it to .env (local) or Vercel project settings (prod).`
+          )}. Add it to .env/.dev.vars (local) or Cloudflare Worker secrets (prod).`
         );
       }
       return undefined;

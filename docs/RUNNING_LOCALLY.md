@@ -8,7 +8,7 @@ Prerequisites
 -------------
 - Node 20+
 - pnpm 9 (`npm i -g pnpm@9.11.0`)
-- Vercel CLI (`npm i -g vercel`)
+- Cloudflare account (only needed for deploy)
 - At minimum: an OpenRouter API key
 
 Step 1 — Clone + install
@@ -37,13 +37,15 @@ Edit `.env`:
 
 > `.gitignore` blocks `.env` and every `.env.*` variant, and whitelists only `.env.example`. `git check-ignore .env` should confirm it's ignored before you commit anything.
 
+Create `.dev.vars` for Wrangler dev (also gitignored) and put the same keys there. Wrangler uses `.dev.vars` at runtime; `pnpm db:push` uses `.env`.
+
 Step 3 — Start the dev server
 -----------------------------
 ```
 pnpm dev
 ```
 
-That script runs `vercel dev`, which serves:
+That script builds the Worker (`pnpm build:worker`) and runs Wrangler dev on port 3000, which serves:
 - `http://localhost:3000/`                — the dashboard
 - `http://localhost:3000/api/generate-tweet` — POST with `{kind, tone, data}`
 - `http://localhost:3000/api/dashboard`     — JSON for the dashboard

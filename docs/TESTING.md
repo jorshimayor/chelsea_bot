@@ -2,7 +2,7 @@ Testing — BlueBanter TS
 
 Setup
 - Ensure `.env` is filled (OpenRouter, Neon, Redis, API‑Football, Tavily, X OAuth)
-- Run `vercel dev`
+- Run `pnpm dev`
 
 Streaming Reply
 - `GET http://localhost:3000/api/index`

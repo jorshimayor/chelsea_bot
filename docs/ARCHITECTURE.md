@@ -1,13 +1,13 @@
 Architecture — BlueBanter TS
 
 Monorepo Layout
-- Apps: `apps/agent` (Vercel Edge), `apps/gateway` (Cloudflare Worker template)
+- Apps: `apps/agent` (agent graph code), `apps/gateway` (optional Cloudflare Worker template)
 - Packages: `packages/db`, `packages/tools`, `packages/shared`, `packages/observability`
 - Data and Config: `data/*`, `config/flags.json`, `docs/*`
 
 Edge‑First Design
-- Vercel Edge Functions handle ingress, streaming synthesis, and publishing
-- Middleware reports cold‑start via `x-cold-start-ms`
+- Cloudflare Worker handles ingress, routing to `api/*`, and cron scheduling
+- Handlers use the Fetch API (`Request`/`Response`) for edge portability
 
 Agent State Machine (LangGraph‑style)
 - Nodes defined in `apps/agent/src/graph.ts`
@@ -30,7 +30,7 @@ LLM Routing & Streaming
 - Edge handler streams with `x-token-usage`: `apps/agent/src/index.ts`
 
 Tools & Caching
-- Providers: API‑Football, Tavily, RSS, OpenRouter Images
+- Providers: API‑Football, Tavily, RSS (fetched via `fetch`), OpenRouter Images
 - Hot cache: Upstash Redis; Warm cache: Neon Postgres
 - Tool implementations with `citation`: `packages/tools/index.ts`
 
@@ -44,7 +44,6 @@ Publishing Flow (X/Twitter)
 - Idempotent publish with Redis `once` and flags in `config/flags.json`
 
 Observability
-- Sentry initialization in Edge: `apps/agent/src/index.ts`
 - Lightweight OTLP exporter: `packages/observability/index.ts`
 - Per‑node and per‑chunk tracing in synthesis
 

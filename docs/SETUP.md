@@ -1,8 +1,8 @@
 BlueBanter TS — Production Setup Guide
 
 Prerequisites
-- Node 20+, `pnpm@9.11`, `vercel` CLI, GitHub account
-- Accounts and keys: OpenRouter, Neon Postgres, Upstash Redis, API‑Football, Tavily, Nano Banana, X (Twitter) Developer, Sentry, optional OTLP collector
+- Node 20+, `pnpm@9.11`, Cloudflare account, GitHub account
+- Accounts and keys: OpenRouter, Neon Postgres, Upstash Redis, API‑Football, Tavily, Nano Banana, X (Twitter) Developer, optional OTLP collector
 
 Clone & Install
 - `git clone https://github.com/yourname/bluebanter-ts.git`
@@ -12,7 +12,7 @@ Clone & Install
 Environment Variables
 - Copy `.env.example` → `.env` and fill (see `docs/RUNNING_LOCALLY.md` for the minimal key set):
 - `OPENROUTER_API_KEY`, `NEON_DATABASE_URL`, `API_FOOTBALL_KEY`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `TAVILY_API_KEY`, `NANO_BANANA_API_KEY`, `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI`, `SENTRY_DSN`, `OTLP_ENDPOINT`
-- Optional: `vercel link && vercel env pull` to sync hosted env
+- For local dev runtime, also create `.dev.vars` (Wrangler) with the same keys
 
 Database (Neon + Drizzle)
 - Create a Neon serverless Postgres project and get the direct connection string
@@ -31,13 +31,11 @@ Provider Keys
 - Nano Banana: set `NANO_BANANA_API_KEY`
 
 Observability
-- Sentry DSN: set `SENTRY_DSN`
 - OTLP collector: set `OTLP_ENDPOINT` if exporting traces
 
-Edge & Gateway
-- Vercel Edge Functions: defined under `api/*` (runtime=edge)
-- Middleware emits `x-cold-start-ms` for cold‑start measurements
-- Optional Cloudflare Worker in `apps/gateway`; publish later with Wrangler
+Runtime
+- Cloudflare Worker routes requests to the existing handlers in `api/*`
+- Cron triggers are defined in `wrangler.toml` and call the `/api/cron/*` routes
 
 Link X (Twitter) OAuth
 - Ensure `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI` are set
@@ -45,12 +43,15 @@ Link X (Twitter) OAuth
 - After redirect, tokens persist in Postgres (`oauth_tokens`)
 
 Run Locally
-- `vercel dev` runs the Edge endpoints locally
+- `pnpm dev` runs Wrangler dev on `http://localhost:3000`
 - Visit `/api/index` for agent handler, `/api/x/auth` for OAuth
 
 Deploy
-- `vercel deploy --prod` for production
-- Confirm Edge headers: `x-cold-start-ms`, `x-token-usage` on streamed responses
+- `pnpm deploy` (builds and runs `wrangler deploy`)
+- Set secrets with Wrangler (prod):
+  - `pnpm exec wrangler secret put OPENROUTER_API_KEY`
+  - `pnpm exec wrangler secret put NEON_DATABASE_URL`
+  - Add any other provider keys you use
 
 Feature Flags
 - Edit `config/flags.json` to toggle `savage_mode_enabled`, `image_generation_enabled`, `publish_draft_only`

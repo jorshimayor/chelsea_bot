@@ -1,5 +1,4 @@
 export const config = { runtime: "edge" };
-import * as Sentry from "@sentry/vercel-edge";
 import { env } from "@shared/env";
 import { routeAndStream } from "@shared/openrouter";
 import { startTrace, endTrace } from "@observability/index";
@@ -23,8 +22,6 @@ function streamText(text: string): ReadableStream<Uint8Array> {
   });
 }
 
-Sentry.init({ dsn: env.SENTRY_DSN || "" });
-
 export default async function handler(req: Request): Promise<Response> {
   try {
     const citations = (req.headers.get("x-citations") || "")
@@ -47,7 +44,7 @@ export default async function handler(req: Request): Promise<Response> {
       },
     });
   } catch (e) {
-    Sentry.captureException(e);
+    void env;
     return new Response("error", { status: 500 });
   }
 }

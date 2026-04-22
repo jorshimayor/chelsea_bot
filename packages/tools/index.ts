@@ -1,5 +1,4 @@
 import { setCache, getCache } from "./cache";
-import Parser from "rss-parser";
 import { env } from "@shared/env";
 import { db } from "../db/client";
 import { newsCache, statCache } from "@db/schema";
@@ -111,14 +110,14 @@ export async function fetchNews(input: { player?: string; hours?: number }) {
     await setCache(key, data, 60_000);
     return data;
   }
-  const parser = new Parser();
-  const feed = await parser.parseURL(
-    "https://www.chelseafc.com/en/news/latest.rss"
-  );
+  const feedUrl = "https://www.chelseafc.com/en/news/latest.rss";
+  const feedRes = await fetch(feedUrl);
+  const xml = await feedRes.text();
+  const items = parseRssItems(xml);
   const data = {
     player: input.player,
-    articles: feed.items || [],
-    citation: "https://www.chelseafc.com/en/news/latest.rss",
+    articles: items,
+    citation: feedUrl,
   };
   await setCache(key, data, 4 * 60 * 60 * 1000);
   await db
@@ -129,6 +128,38 @@ export async function fetchNews(input: { player?: string; hours?: number }) {
       expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
     });
   return data;
+}
+
+function parseRssItems(xml: string): any[] {
+  const items: any[] = [];
+  const blocks = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  for (const block of blocks.slice(0, 20)) {
+    const title = extractTag(block, "title");
+    const link = extractTag(block, "link");
+    const pubDate = extractTag(block, "pubDate");
+    const guid = extractTag(block, "guid");
+    const description = extractTag(block, "description");
+    items.push({
+      title,
+      link,
+      pubDate,
+      guid,
+      contentSnippet: description,
+    });
+  }
+  return items;
+}
+
+function extractTag(xml: string, tag: string): string {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const m = xml.match(re);
+  if (!m) return "";
+  return stripCdata(m[1]).trim();
+}
+
+function stripCdata(s: string): string {
+  const v = s.replace(/^<!\[CDATA\[/i, "").replace(/\]\]>$/i, "");
+  return v.replace(/<[^>]+>/g, "");
 }
 
 export async function fetchExpertCommentary(input: { player: string }) {
